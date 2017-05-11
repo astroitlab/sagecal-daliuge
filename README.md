@@ -5,8 +5,8 @@ SAGECAL on Daliuge
   then reinstall Daliuge.
 
 #### 2,compile
-   make all
+    make all
 
     
 #### 3, dist_sagecal.json
-     It is the logical graph and includes self-customized paths(like BashShellDrop's cmd) which you need to modify according to your path.
+  It is the logical graph and includes self-customized paths(like BashShellDrop's cmd) which you need to modify according to your path.
