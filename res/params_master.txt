@@ -1,0 +1,1 @@
+-S /mnt/astrodata/sagecal/share -p /mnt/astrodata/sagecal/output -N 2 -t 10 -n 6 -v
