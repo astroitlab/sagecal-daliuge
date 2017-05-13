@@ -115,7 +115,7 @@ void ParseCmdLine(int ac, char **av) {
                     Data::shareDir = args[i+1];
                     break;
                 case 'n':
-                    Nt= atoi(optarg);
+                    Nt= atoi(args[i+1]);
                     break;
                 case 'Q':
                     PolyType= atoi(args[i+1]);
