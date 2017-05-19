@@ -175,6 +175,9 @@ void ParseCmdLine(int ac, char **av) {
                 case 'z':
                     Data::ignorefile = args[i+1];
                     break;
+                case 'v':
+                    Data::verbose = 1;
+                    break;
                 case 'D':
                     Data::DoDiag = atoi(args[i+1]);
                     if (Data::DoDiag < 0) { Data::DoDiag = 0; }
@@ -302,7 +305,7 @@ int main(int argc, char **argv) {
     double res_ratio = 15.0; /* how much can the residual increase before resetting solutions, set higher than stand alone mode */
     res_0 = res_1 = res_00 = res_01 = 0.0;
 
-    load_share_res(Data::shareDir, iodata.msname, &start_iter, &res_0, &res_1, &res_00, &res_01, &mean_nu);
+    load_share_res(Data::shareDir, iodata.msname, &start_iter, &res_0, &res_1, &res_00, &res_01, &mean_nu, &tilex);
 
 
     /*------------------------------------------processing-------------------------------------------------------------*/
@@ -388,7 +391,7 @@ int main(int argc, char **argv) {
     }
     dump_share_barr(Data::shareDir,iodata.msname,&iodata,barr);
     write_share_XYZ(Data::shareDir, iodata.msname, p, iodata.N * 8 * Mt, "p");
-    dump_share_res(Data::shareDir, iodata.msname, &start_iter, &res_0, &res_1, &res_00, &res_01, &mean_nu);
+    dump_share_res(Data::shareDir, iodata.msname, &start_iter, &res_0, &res_1, &res_00, &res_01, &mean_nu,&tilex);
     dump_share_iodata(Data::shareDir,iodata.msname,&iodata);
     if (Data::doBeam) {
         dump_share_beam(Data::shareDir,iodata.msname,&iodata,&beam);

@@ -328,7 +328,9 @@ int main(int argc, char **argv) {
     read_share_XYZ(Data::shareDir, iodata.msname, p, iodata.N * 8 * Mt, "p");
     /*---------------------------------------------processing---------------------------------------------------------*/
     double res_0, res_1, res_00, res_01, mean_nu;
-    load_share_res(Data::shareDir, iodata.msname, &start_iter, &res_0, &res_1, &res_00, &res_01, &mean_nu);
+    int tilex = 0;
+
+    load_share_res(Data::shareDir, iodata.msname, &start_iter, &res_0, &res_1, &res_00, &res_01, &mean_nu, &tilex);
 
     /* ADMM 1: minimize cost function */
     if (admm == 0) {
@@ -421,7 +423,7 @@ int main(int argc, char **argv) {
         dump_share_beam(Data::shareDir,iodata.msname,&iodata,&beam);
     }
     dump_share_barr(Data::shareDir,iodata.msname,&iodata,barr);
-    dump_share_res(Data::shareDir, iodata.msname, &start_iter, &res_0, &res_1, &res_00, &res_01, &mean_nu);
+    dump_share_res(Data::shareDir, iodata.msname, &start_iter, &res_0, &res_1, &res_00, &res_01, &mean_nu, &tilex);
     if (iodata.Nchan > 1 || Data::whiten) {
         write_share_XYZ(Data::shareDir, iodata.msname, xbackup, iodata.Nbase * 8 * iodata.tilesz, "xbackup");
     }

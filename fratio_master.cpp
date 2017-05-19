@@ -130,7 +130,6 @@ int main(int argc, char **argv) {
     Data::MPIData mpiData;
     int ntasks = 0;
     vector <struct MsIndex> msIndexs;
-    int n_iter = get_last_iter(uid);
 
     /*------------------------------------share data file-------------------------------------------------------------*/
     char shareFile[256];
@@ -205,9 +204,10 @@ int main(int argc, char **argv) {
         ms_short_name(ms_full_name, short_name);
 
         for (unsigned int sm = 0; sm < msIndexs.size(); sm++) {
+            cout << "cur:" << msIndexs[sm].ms << ", index.cm:" << msIndexs[sm].cm << ", idx:" << sm << endl;
             if(strcmp(short_name, msIndexs[sm].ms)==0) {
                 cout << "find:" << msIndexs[sm].ms << ", idx:" << sm << endl;
-                fratio[sm] = data.fratio;
+                fratio[msIndexs[sm].cm] = data.fratio;
                 break;
             }
         }

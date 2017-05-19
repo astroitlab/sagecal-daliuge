@@ -44,9 +44,9 @@ void dump_share_coh(char *shareDir, char *msname, Data::IOData *iodata, complex 
 
 void load_share_coh(char *shareDir, char *msname, Data::IOData *iodata, complex double *coh);
 
-void dump_share_res(char *shareDir, char *msname, int *start_iter, double *res_0, double *res_1, double *res_00, double *res_01, double *mean_nu);
+void dump_share_res(char *shareDir, char *msname, int *start_iter, double *res_0, double *res_1, double *res_00, double *res_01, double *mean_nu, int *tilex);
 
-void load_share_res(char *shareDir, char *msname, int *start_iter, double *res_0, double *res_1, double *res_00, double *res_01, double *mean_nu);
+void load_share_res(char *shareDir, char *msname, int *start_iter, double *res_0, double *res_1, double *res_00, double *res_01, double *mean_nu, int *tilex);
 
 void s_dump_data(char *oFile,Data::IOData *iodata, Data::LBeam *lBeam, clus_source_t **carr, baseline_t *barr);
 

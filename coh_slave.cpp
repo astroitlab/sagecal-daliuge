@@ -5,26 +5,20 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "sagecal.h"
+#include <sagecal.h>
 #include "utils.h"
 
 using namespace std;
 using namespace Data;
 
-#ifndef LMCUT
-#define LMCUT 40
-#endif
-
 char *uid;
-char *masterFile;
-
 void print_copyright(void) {
     cout<<"SAGECal-DALIUGE 0.0.1 (C) 2016-2017 CNLAB & ICRAR"<<endl;
 }
 
 void print_help(void) {
     cout << "Usage:" << endl;
-    cout << "update_y_slave -X inputFile -Y outputfile -Z masterFile -P params.txt -U uid" << endl;
+    cout << "coh_slave -X inputFile -Y outputfile -P params.txt -U uid" << endl;
     cout << "Report bugs to <wsl@cnlab.net>" << endl;
 
 }
@@ -36,16 +30,13 @@ void ParseCmdLine(int ac, char **av) {
         print_help();
         exit(0);
     }
-    while ((c = getopt(ac, av, "X:Y:Z:U:P:h")) != -1) {
+    while ((c = getopt(ac, av, "X:Y:U:P:h")) != -1) {
         switch (c) {
             case 'X':
                 Data::inputFile = optarg;
                 break;
             case 'U':
                 uid = optarg;
-                break;
-            case 'Z':
-                masterFile = optarg;
                 break;
             case 'P':
                 Data::cmdFile = optarg;
@@ -199,59 +190,58 @@ void CheckParams(int ac, char **av) {
 
 int main(int argc, char **argv) {
     ParseCmdLine(argc, argv);
+
     /*-----------------------------------------------input------------------------------------------------------------*/
-    Data::IOData old_iodata, iodata;
+    Data::IOData iodata;
     Data::LBeam beam;
     Data::MPIData mpiData;
-    double *arho;
+    clus_source_t *carr;
+    baseline_t *barr;
+    double *arho, *arho0;
+    int sources_precessed = get_last_iter(uid);
     openblas_set_num_threads(1);
 
-    if(get_data_flag(Data::inputFile)!=0) {
-        char *tmp = Data::inputFile;
-        Data::inputFile = masterFile;
-        masterFile = tmp;
-        tmp = NULL;
-    }
+    if(doBeam && sources_precessed!=0)
+        sources_precessed = 1;
 
     FILE *ip = 0;
-    if ((ip = fopen(Data::inputFile,"rb")) == 0) {
+    if ((ip = fopen(Data::inputFile,"r")) == 0) {
         fprintf(stderr, "%s: %d: no input file\n", __FILE__, __LINE__);
         return 1;
     }
-    load_iodata(ip, &old_iodata);
-    if (ip) {
-        fclose(ip);
-    }
+    load_iodata(ip, &iodata);
+    cout << "iodata.N/M/Mt/Nms:" << iodata.N << "/" << iodata.M  << "/" << iodata.Mt << "/" << iodata.Nms
+        << ", iodata.freq0:" << iodata.freq0/ 1e6<< "Mhz" << endl;
 
-    FILE *mp = 0;
-    if ((mp = fopen(masterFile,"rb")) == 0) {
-        fprintf(stderr, "%s: %d: no master file\n", __FILE__, __LINE__);
-        return 1;
-    }
-    load_mpidata(mp,&mpiData);
-    if (mp) {
-        fclose(mp);
-    }
-
-    load_share_iodata(Data::shareDir, old_iodata.msname, &iodata);
-    cout << iodata.msname <<",iodata.N/M/Mt/Nms:" << iodata.N << "/" << iodata.M  << "/" << iodata.Mt << "/" << iodata.Nms
-         << ", iodata.freq0:" << iodata.freq0/ 1e6<< "Mhz" << endl;
     if (Data::doBeam) {
-        load_share_beam(Data::shareDir, iodata.msname, &beam);
+        load_share_beam(Data::shareDir,iodata.msname, &beam);
     }
-    Data::freeData(old_iodata);
-
-    int M = mpiData.Mo;
-    int Mt = mpiData.M;
-
-    if ((arho = (double *) calloc((size_t) mpiData.Mo, sizeof(double))) == 0) {
+    if ((barr = (baseline_t *) calloc((size_t) iodata.Nbase * iodata.tilesz, sizeof(baseline_t))) == 0) {
         fprintf(stderr, "%s: %d: no free memory\n", __FILE__, __LINE__);
         exit(1);
     }
-    read_share_XYZ(Data::shareDir, iodata.msname, arho, mpiData.Mo, "arho");
+    load_share_barr(Data::shareDir,iodata.msname, &iodata, barr);
 
+    load_mpidata(ip,&mpiData);
+
+    int M = mpiData.Mo;
+
+    if ((arho = (double *) calloc((size_t) M, sizeof(double))) == 0) {
+        fprintf(stderr, "%s: %d: no free memory\n", __FILE__, __LINE__);
+        exit(1);
+    }
+    read_share_XYZ(Data::shareDir, iodata.msname, arho, M, "arho");
+
+    if ((arho0 = (double *) calloc((size_t) M, sizeof(double))) == 0) {
+        fprintf(stderr, "%s: %d: no free memory\n", __FILE__, __LINE__);
+        exit(1);
+    }
+    read_share_XYZ(Data::shareDir, iodata.msname, arho0, M, "arho0");
+
+    if (ip) {
+        fclose(ip);
+    }
     /*----------------------------------------------------------------------------------------------------------------*/
-    clus_source_t *carr;
     read_sky_cluster(Data::SkyModel, Data::Clusters, &carr, &M, iodata.freq0, iodata.ra0, iodata.dec0, Data::format);
     if (M <= 0) {
         fprintf(stderr, "%s: %d: no clusters to solve\n", __FILE__, __LINE__);
@@ -272,6 +262,7 @@ int main(int argc, char **argv) {
         }
     }
 
+    /*----------------------------------------------------------------------------------------------------------------*/
     double *xbackup = 0;
     if (iodata.Nchan > 1 || Data::whiten) {
         if ((xbackup = (double *) calloc((size_t) iodata.Nbase * 8 * iodata.tilesz, sizeof(double))) == 0) {
@@ -281,95 +272,71 @@ int main(int argc, char **argv) {
         read_share_XYZ(Data::shareDir, iodata.msname, xbackup, iodata.Nbase * 8 * iodata.tilesz, "xbackup");
     }
 
-    /*----------------------------------------------------------------------------------------------------------------*/
     complex double *coh;
-
     if ((coh = (complex double *) calloc((size_t)(iodata.M * iodata.Nbase * iodata.tilesz * 4), sizeof(complex double)))==0) {
         fprintf(stderr, "%s: %d: no free memory\n", __FILE__, __LINE__);
         exit(1);
     }
     load_share_coh(Data::shareDir, iodata.msname, &iodata, coh);
-
-    /* ADMM memory */
-    double *Z, *Y;
-    /* Z: (store B_f Z) 2Nx2 x M */
-    if ((Z = (double *) calloc((size_t) iodata.N * 8 * Mt, sizeof(double))) == 0) {
-        fprintf(stderr, "%s: %d: no free memory\n", __FILE__, __LINE__);
-        exit(1);
-    }
-    /* Y, 2Nx2 , M times */
-    if ((Y = (double *) calloc((size_t) iodata.N * 8 * Mt, sizeof(double))) == 0) {
-        fprintf(stderr, "%s: %d: no free memory\n", __FILE__, __LINE__);
-        exit(1);
-    }
-    /* primal residual J-BZ */
-    double *pres;
-    if ((pres = (double *) calloc((size_t) iodata.N * 8 * Mt, sizeof(double))) == 0) {
-        fprintf(stderr, "%s: %d: no free memory\n", __FILE__, __LINE__);
-        exit(1);
-    }
-    double *p;
-    /* parameters 8*N*M ==> 8*N*Mt */
-    if ((p = (double *) calloc((size_t) iodata.N * 8 * Mt, sizeof(double))) == 0) {
-        fprintf(stderr, "%s: %d: no free memory\n", __FILE__, __LINE__);
-        exit(1);
-    }
-
-    read_share_XYZ(Data::shareDir, iodata.msname, Y, iodata.N * 8 * Mt, "Y");
-    read_share_XYZ(Data::shareDir, iodata.msname, Z, iodata.N * 8 * Mt, "Z");
-    read_share_XYZ(Data::shareDir, iodata.msname, pres, iodata.N * 8 * Mt, "pres");
-    read_share_XYZ(Data::shareDir, iodata.msname, p, iodata.N * 8 * Mt, "p");
-
     /*----------------------------------------------------------------------------------------------------------------*/
-    double res_0, res_1, res_00, res_01;
-    double mean_nu;
-    res_0 = res_1 = res_00 = res_01 = 0.0;
-    int start_iter = 0, tilex = 0;
+    double inv_c = 1.0 / CONST_C;
+    /* reweight regularization factors with weight based on flags */
+    memcpy(arho, arho0, (size_t) M * sizeof(double));
+    my_dscal(M, iodata.fratio, arho);
 
-    load_share_res(Data::shareDir, iodata.msname, &start_iter, &res_0, &res_1, &res_00, &res_01, &mean_nu, &tilex);
+    /* rescale u,v,w by 1/c NOT to wavelengths, that is done later in prediction */
+    my_dscal(iodata.Nbase * iodata.tilesz, inv_c, iodata.u);
+    my_dscal(iodata.Nbase * iodata.tilesz, inv_c, iodata.v);
+    my_dscal(iodata.Nbase * iodata.tilesz, inv_c, iodata.w);
 
-    /*------------------------------------------processing-------------------------------------------------------------*/
-    int admm = get_last_iter(uid);
-    /* update Y_i <= Y_i + rho (J_i-B_i Z)
-        since we already have Y_i + rho J_i, only need -rho (B_i Z) */
-    ck = 0;
-    for (ci = 0; ci < M; ci++) {
-        if (arho[ci] > 0.0) {
-            my_daxpy(iodata.N * 8 * carr[ci].nchunk, &Z[ck], -arho[ci], &Y[ck]);
-        }
-        ck += iodata.N * 8 * carr[ci].nchunk;
+    /**********************************************************/
+    /* update baseline flags */
+    /* and set x[]=0 for flagged values */
+    preset_flags_and_data(iodata.Nbase * iodata.tilesz, iodata.flag, barr, iodata.x, Data::Nt);
+    /* if data is being whitened, whiten x here before copying */
+    if (Data::whiten) {
+        whiten_data(iodata.Nbase * iodata.tilesz, iodata.x, iodata.u, iodata.v, iodata.freq0, Data::Nt);
+    }
+    if (iodata.Nchan > 1 || Data::whiten) { /* keep fresh copy of raw data */
+        my_dcopy(iodata.Nbase * 8 * iodata.tilesz, iodata.x, 1, xbackup, 1);
     }
 
-    /* calculate primal residual J-BZ */
-    my_dcopy(iodata.N * 8 * Mt, p, 1, pres, 1);
-    my_daxpy(iodata.N * 8 * Mt, Z, -1.0, pres);
-
-    /* primal residual : per one real parameter */
-    /* to remove a load of network traffic and screen output, disable this info */
-    if (Data::verbose) {
-        cout << iodata.msname << ": ADMM : " << admm << " residual: primal="
-             << my_dnrm2(iodata.N * 8 * Mt, pres) / sqrt((double) 8 * iodata.N * Mt) << ", initial=" << res_0
-             << ", final=" << res_1 << endl;
+    /* precess source locations (also beam pointing) from J2000 to JAPP if we do any beam predictions,
+     using first time slot as epoch */
+    if (doBeam && !sources_precessed) {
+        precess_source_locations(beam.time_utc[iodata.tilesz / 2], carr, M, &beam.p_ra0, &beam.p_dec0, Data::Nt);
+        sources_precessed = 1;
     }
-
-    write_share_XYZ(Data::shareDir, iodata.msname, Y, iodata.N * 8 * Mt, "Y");
-    write_share_XYZ(Data::shareDir, iodata.msname, Z, iodata.N * 8 * Mt, "Z");
-    write_share_XYZ(Data::shareDir, iodata.msname, pres, iodata.N * 8 * Mt, "pres");
-    write_share_XYZ(Data::shareDir, iodata.msname, p, iodata.N * 8 * Mt, "p");
-
-    /*--------------------------------------------output---------------------------------------------------------------*/
-    /* if most data are flagged, only send the original Y we got at the beginning */
-    /* for initial ADMM iteration, get back Y with common unitary ambiguity */
+    if (!doBeam) {
+        precalculate_coherencies(iodata.u, iodata.v, iodata.w, coh, iodata.N, iodata.Nbase * iodata.tilesz, barr,
+                                 carr, M, iodata.freq0, iodata.deltaf, iodata.deltat, iodata.dec0, Data::min_uvcut,
+                                 Data::max_uvcut, Data::Nt);
+    } else {
+        precalculate_coherencies_withbeam(iodata.u, iodata.v, iodata.w, coh, iodata.N, iodata.Nbase * iodata.tilesz,
+                                          barr, carr, M, iodata.freq0, iodata.deltaf, iodata.deltat, iodata.dec0,
+                                          Data::min_uvcut, Data::max_uvcut,
+                                          beam.p_ra0, beam.p_dec0, iodata.freq0, beam.sx, beam.sy, beam.time_utc,
+                                          iodata.tilesz, beam.Nelem, beam.xx, beam.yy, beam.zz, Data::Nt);
+    }
+    /*----------------------------------------------------------------------------------------------------------------*/
     FILE *op = 0;
     if ((op = fopen(Data::outputFile, "wb")) == 0) {
         fprintf(stderr, "%s: %d: no output file\n", __FILE__, __LINE__);
         return 1;
     }
-    int flag = 2;
-    fwrite(&flag, sizeof(int), 1, op);
+    dump_share_iodata(Data::shareDir,iodata.msname,&iodata);
+    if (Data::doBeam) {
+        dump_share_beam(Data::shareDir,iodata.msname,&iodata,&beam);
+    }
+    dump_share_coh(Data::shareDir,iodata.msname,&iodata,coh);
+    dump_share_barr(Data::shareDir,iodata.msname,&iodata,barr);
+    write_share_XYZ(Data::shareDir, iodata.msname, arho, iodata.M, "arho");
+
+    if (iodata.Nchan > 1 || Data::whiten) {
+        write_share_XYZ(Data::shareDir, iodata.msname, xbackup, iodata.Nbase * 8 * iodata.tilesz, "xbackup");
+    }
     dump_iodata(op, &iodata);
-    fwrite(Y, sizeof(double), iodata.N * 8 * Mt, op);
-    fwrite(Z, sizeof(double), iodata.N * 8 * Mt, op);
+    dump_mpidata(op, &mpiData);
 
     if (op) {
         fclose(op);
@@ -425,14 +392,13 @@ int main(int argc, char **argv) {
         free(carr[ci].spec_idx2);
     }
     free(carr);
-    free(p);
+    free(barr);
     if (iodata.Nchan > 1 || Data::whiten) {
         free(xbackup);
     }
-    free(Z);
-    free(Y);
     free(coh);
     free(arho);
+    free(arho0);
     if (!doBeam) {
         Data::freeData(iodata);
     } else {

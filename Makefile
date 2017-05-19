@@ -40,6 +40,9 @@ fratio_master.o: fratio_master.cpp
 fratio_slave.o: fratio_slave.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(GLIBI) -c $<
 
+coh_slave.o: coh_slave.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(GLIBI) -c $<
+
 sagefit_slave.o: sagefit_slave.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(GLIBI) -c $<
 
@@ -85,7 +88,10 @@ write_z_master: write_z_master.o data.o utils.o ./lib/libsagecal.a
 write_residual_slave: write_residual_slave.o data.o utils.o ./lib/libsagecal.a
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(GLIBI) $(LIBPATH)  -o $@ write_residual_slave.o data.o utils.o $(MY_LIBS) $(LAPACK) $(CASA_LIBS)  $(GLIBL)
 
-all: aux_reader admm_master admm_slave fratio_master fratio_slave sagefit_slave update_z_master write_z_master write_residual_slave update_y_slave
+coh_slave: coh_slave.o data.o utils.o ./lib/libsagecal.a
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(GLIBI) $(LIBPATH)  -o $@ coh_slave.o data.o utils.o $(MY_LIBS) $(LAPACK) $(CASA_LIBS)  $(GLIBL)
+
+all: aux_reader admm_master admm_slave fratio_master fratio_slave sagefit_slave update_z_master write_z_master write_residual_slave update_y_slave coh_slave
 
 clean:
-	rm *.o aux_reader admm_master admm_slave fratio_master fratio_slave sagefit_slave update_z_master write_z_master write_residual_slave update_y_slave
+	rm *.o aux_reader admm_master admm_slave fratio_master fratio_slave sagefit_slave update_z_master write_z_master write_residual_slave update_y_slave coh_slave

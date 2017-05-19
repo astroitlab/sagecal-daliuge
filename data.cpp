@@ -114,7 +114,7 @@ void Data::readMSlist(char *fname, vector <string> *msnames) {
 }
 
 void Data::readAuxData(const char *fname, Data::IOData *data) {
-    cout << "using Data::TableName = "<< Data::TableName << endl;
+    cout << "using Data::TableName = "<< fname << endl;
 
     Table _t = Table(fname);
     Table _ant = Table(_t.keywordSet().asTable("ANTENNA"));

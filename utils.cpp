@@ -543,7 +543,7 @@ void write_share_XYZ(char *shareDir, char *msname, double *Y, int len, const cha
     }
 }
 
-void dump_share_res(char *shareDir, char *msname, int *start_iter, double *res_0, double *res_1, double *res_00, double *res_01, double *mean_nu) {
+void dump_share_res(char *shareDir, char *msname, int *start_iter, double *res_0, double *res_1, double *res_00, double *res_01, double *mean_nu, int *tilex) {
     char short_name[64], ms_full_name[256];
     sprintf(ms_full_name,"%s", msname);
     ms_short_name(ms_full_name,short_name);
@@ -562,12 +562,13 @@ void dump_share_res(char *shareDir, char *msname, int *start_iter, double *res_0
     fwrite(res_00, sizeof(double),1,sp);
     fwrite(res_01, sizeof(double),1,sp);
     fwrite(mean_nu, sizeof(double),1,sp);
+    fwrite(tilex, sizeof(int),1,sp);
     if (sp) {
         fclose(sp);
     }
 }
 
-void load_share_res(char *shareDir, char *msname, int *start_iter, double *res_0, double *res_1, double *res_00, double *res_01, double *mean_nu) {
+void load_share_res(char *shareDir, char *msname, int *start_iter, double *res_0, double *res_1, double *res_00, double *res_01, double *mean_nu, int *tilex) {
     char short_name[64], ms_full_name[256];
     sprintf(ms_full_name,"%s", msname);
     ms_short_name(ms_full_name,short_name);
@@ -586,6 +587,7 @@ void load_share_res(char *shareDir, char *msname, int *start_iter, double *res_0
     fread(res_00, sizeof(double),1,sp);
     fread(res_01, sizeof(double),1,sp);
     fread(mean_nu, sizeof(double),1,sp);
+    fread(tilex, sizeof(int),1,sp);
     if (sp) {
         fclose(sp);
     }

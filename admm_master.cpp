@@ -176,11 +176,16 @@ int main(int argc, char **argv) {
         load_iodata(ip, &data);
 
         cout << "Slave [" << data.msname << "] N=" << data.N << " M/Mt=" << data.M << "/" << data.Mt << " tilesz="
-             << data.tilesz << " totaltime=" << data.totalt << " Freq=" << data.freq0 / 1e6<< "Mhz"<< endl;
+             << data.tilesz << " totaltime=" << data.totalt << " Freq=" << data.freq0 / 1e6<< "Mhz"
+             << "index:" << cm << endl;
+
         msnames.push_back(string(data.msname));
         struct MsIndex msIndex;
         msIndex.cm = cm;
-        ms_short_name(data.msname, msIndex.ms);
+
+        char ms_full_name[256];
+        sprintf(ms_full_name,"%s", data.msname);
+        ms_short_name(ms_full_name, msIndex.ms);
         msIndexs.push_back(msIndex);
 
         if (cm == 0) { /* update data */
@@ -259,7 +264,12 @@ int main(int argc, char **argv) {
         Ntime = Nmaxtime;
     }
     cout << "Master total timeslots=" << Ntime << endl;
-
+    if (!Data::admm_rho_file) {
+        cout << "ADMM iterations=" << Nadmm << " polynomial order=" << Npoly << " regularization=" << admm_rho << endl;
+    } else {
+        cout << "ADMM iterations=" << Nadmm << " polynomial order=" << Npoly << " regularization given by text file "
+             << Data::admm_rho_file << endl;
+    }
     /* send array to slaves */
     /* update rho on each slave */
     iodata.Mo = Mo;

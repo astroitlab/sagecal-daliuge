@@ -247,8 +247,8 @@ int main(int argc, char **argv) {
 
         for (unsigned int sm = 0; sm < msIndexs.size(); sm++) {
             if(strcmp(short_name, msIndexs[sm].ms)==0) {
-                cout << "update_z_master find:" << msIndexs[sm].ms << ", idx:" << sm << endl;
-                fread(&Y[sm * mpiData.N * 8 * mpiData.M], sizeof(double), mpiData.N * 8 * mpiData.M, ip);
+                cout << "update_z_master find:" << msIndexs[sm].ms << ", idx:" << msIndexs[sm].cm << endl;
+                fread(&Y[msIndexs[sm].cm * mpiData.N * 8 * mpiData.M], sizeof(double), mpiData.N * 8 * mpiData.M, ip);
                 break;
             }
         }
@@ -259,14 +259,11 @@ int main(int argc, char **argv) {
     }
 
     /*-----------------------------------process and share output-----------------------------------------------------*/
-    for (int im = 0; im < mpiData.Nms; im++) {
-        read_share_XYZ(Data::shareDir, msIndexs[im].ms, &Y[im * mpiData.N * 8 * mpiData.M], mpiData.N * 8 * mpiData.M, "Y");
-    }
     if(admm==0) {
         calculate_manifold_average(mpiData.N, mpiData.M, mpiData.Nms, Y, 20, Data::Nt);
         /* send updated Y back to each slave */
         for (int im = 0; im < mpiData.Nms; im++) {
-            write_share_XYZ(Data::shareDir, msIndexs[im].ms, &Y[im * mpiData.N * 8 * mpiData.M], mpiData.N * 8 * mpiData.M, "Y");
+            write_share_XYZ(Data::shareDir, msIndexs[im].ms, &Y[msIndexs[im].cm * mpiData.N * 8 * mpiData.M], mpiData.N * 8 * mpiData.M, "Y");
         }
     }
 
@@ -306,22 +303,6 @@ int main(int argc, char **argv) {
         cout << "Timeslot:" << ct << " ADMM:" << admm << endl;
     }
 
-#ifdef DEBUG
-    fprintf(dfp,"%%%%%%%%%%%%%% time=%d admm=%d\n",ct,admm);
-             for(int m=0; m<mpiData.M; m++) {
-              for (int ci=0;ci<Npoly; ci++) {
-               fprintf(dfp,"%%%%%%%%%%%% Z dir=%d poly=%d\n",m,ci);
-               fprintf(dfp,"Z_%d_%d=[\n",m,ci);
-               for (int p=0; p<mpiData.N; p++) {
-                int off=m*8*mpiData.N*Npoly+ci*8*mpiData.N+p*8;
-                fprintf(dfp,"%lf+j*(%lf), %lf+j*(%lf);\n%lf+j*(%lf), %lf+j*(%lf);\n",Z[off],Z[off+1],Z[off+2],Z[off+3],Z[off+4],Z[off+5],Z[off+6],Z[off+7]);
-               }
-               fprintf(dfp,"];\n");
-              }
-             }
-#endif
-
-
     /* send B_i Z to each slave */
     for (int im = 0; im < mpiData.Nms; im++) {
         for (int p = 0; p < mpiData.M; p++) {
@@ -331,18 +312,7 @@ int main(int argc, char **argv) {
                          &z[8 * mpiData.N * p]);
             }
         }
-#ifdef DEBUG
-        fprintf(dfp,"%%%%%%%%%%%%%% time=%d admm=%d\n",ct,admm);
-                 for(int m=0; m<mpiData.M; m++) {
-                  fprintf(dfp,"%%%%%%%%%%%% consensus for slave=%d dir=%d\n",im,m);
-                  fprintf(dfp,"BZ_%d_%d=[\n",im,m);
-                  for (int p=0; p<mpiData.N; p++) {
-                   int off=m*8*mpiData.N+p*8;
-                   fprintf(dfp,"%lf+j*(%lf), %lf+j*(%lf);\n%lf+j*(%lf), %lf+j*(%lf);\n",z[off],z[off+1],z[off+2],z[off+3],z[off+4],z[off+5],z[off+6],z[off+7]);
-                  }
-                  fprintf(dfp,"];\n");
-                 }
-#endif
+
         write_share_XYZ(Data::shareDir, msIndexs[im].ms, z, mpiData.N * 8 * mpiData.M, "Z");
     }
     /*-----------------------------------------------output-----------------------------------------------------------*/

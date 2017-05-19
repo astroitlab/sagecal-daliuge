@@ -175,6 +175,9 @@ void ParseCmdLine(int ac, char **av) {
                 case 'z':
                     Data::ignorefile = args[i+1];
                     break;
+                case 'v':
+                    Data::verbose = 1;
+                    break;
                 case 'D':
                     Data::DoDiag = atoi(args[i+1]);
                     if (Data::DoDiag < 0) { Data::DoDiag = 0; }
@@ -256,9 +259,9 @@ int main(int argc, char **argv) {
     write_share_XYZ(Data::shareDir, iodata.msname, arho0, iodata.M, "arho0");
 
     double res_0, res_1, res_00, res_01,mean_nu;
-    int start_iter = 1;
+    int start_iter = 1, tilex = 0;
     res_0 = res_1 = res_00 = res_01 = mean_nu = 0.0;
-    dump_share_res(Data::shareDir, iodata.msname, &start_iter, &res_0, &res_1, &res_00, &res_01, &mean_nu);
+    dump_share_res(Data::shareDir, iodata.msname, &start_iter, &res_0, &res_1, &res_00, &res_01, &mean_nu, &tilex);
     double *Z, *Y;
     /* Z: (store B_f Z) 2Nx2 x M */
     if ((Z = (double *) calloc((size_t) iodata.N * 8 * mpiData.M, sizeof(double))) == 0) {
@@ -280,20 +283,7 @@ int main(int argc, char **argv) {
     }
     memset(pres, 0, sizeof(double) * iodata.N * 8 * mpiData.M);
 
-    double *p, *pinit;
-    /* parameters 8*N*M ==> 8*N*Mt */
-    if ((p = (double *) calloc((size_t) iodata.N * 8 * mpiData.M, sizeof(double))) == 0) {
-        fprintf(stderr, "%s: %d: no free memory\n", __FILE__, __LINE__);
-        exit(1);
-    }
-    memset(p, 0, sizeof(double) * iodata.N * 8 * mpiData.M);
 
-    /* backup of default initial values */
-    if ((pinit = (double *) calloc((size_t) iodata.N * 8 * mpiData.M, sizeof(double))) == 0) {
-        fprintf(stderr, "%s: %d: no free memory\n", __FILE__, __LINE__);
-        exit(1);
-    }
-    memcpy(pinit, p, (size_t) iodata.N * 8 * mpiData.M * sizeof(double));
 
     complex double *coh;
     /* coherencies */
@@ -313,15 +303,13 @@ int main(int argc, char **argv) {
 
     write_share_XYZ(Data::shareDir, iodata.msname, Y, iodata.N * 8 * mpiData.M, "Y");
     write_share_XYZ(Data::shareDir, iodata.msname, Z, iodata.N * 8 * mpiData.M, "Z");
-    write_share_XYZ(Data::shareDir, iodata.msname, p, iodata.N * 8 * mpiData.M, "p");
+
     write_share_XYZ(Data::shareDir, iodata.msname, pres, iodata.N * 8 * mpiData.M, "pres");
-    write_share_XYZ(Data::shareDir, iodata.msname, pinit, iodata.N * 8 * mpiData.M, "pinit");
+
     dump_share_coh(Data::shareDir,iodata.msname,&iodata,coh);
     /*--------------------------------------------       free  -------------------------------------------------------*/
     free(Y);
     free(Z);
-    free(p);
-    free(pinit);
     free(arho);
     free(pres);
     free(coh);

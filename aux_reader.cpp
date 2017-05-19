@@ -237,13 +237,15 @@ int main(int argc, char **argv) {
     openblas_set_num_threads(1);
 
     if (!doBeam) {
-        readAuxData(Data::TableName, &iodata);
+        readAuxData(iodata.msname, &iodata);
     } else {
-        readAuxData(Data::TableName, &iodata, &beam);
+        readAuxData(iodata.msname, &iodata, &beam);
     }
 
     /**********************************************************/
     int M, Mt, ci, cj, ck;
+    double *p, *pinit;
+    double **pm;
 
     clus_source_t *carr;
     baseline_t *barr;
@@ -271,6 +273,11 @@ int main(int argc, char **argv) {
     }
     printf("Total effective clusters: %d\n", Mt);
 
+    /* parameters 8*N*M ==> 8*N*Mt */
+    if ((p = (double *) calloc((size_t) iodata.N * 8 * Mt, sizeof(double))) == 0) {
+        fprintf(stderr, "%s: %d: no free memory\n", __FILE__, __LINE__);
+        exit(1);
+    }
     /* update cluster array with correct pointers to parameters */
     cj = 0;
     for (ci = 0; ci < M; ci++) {
@@ -283,6 +290,28 @@ int main(int argc, char **argv) {
             cj++;
         }
     }
+    /* pointers to parameters */
+    if ((pm = (double **) calloc((size_t) Mt, sizeof(double *))) == 0) {
+        fprintf(stderr, "%s: %d: no free memory\n", __FILE__, __LINE__);
+        exit(1);
+    }
+    /* setup the pointers */
+    for (ci = 0; ci < Mt; ci++) {
+        pm[ci] = &(p[ci * 8 * iodata.N]);
+    }
+    /* initilize parameters to [1,0,0,0,0,0,1,0] */
+    for (ci = 0; ci < Mt; ci++) {
+        for (cj = 0; cj < iodata.N; cj++) {
+            pm[ci][8 * cj] = 1.0;
+            pm[ci][8 * cj + 6] = 1.0;
+        }
+    }
+    /* backup of default initial values */
+    if ((pinit = (double *) calloc((size_t) iodata.N * 8 * Mt, sizeof(double))) == 0) {
+        fprintf(stderr, "%s: %d: no free memory\n", __FILE__, __LINE__);
+        exit(1);
+    }
+    memcpy(pinit, p, (size_t) iodata.N * 8 * Mt * sizeof(double));
 
     /**********************************************************/
     /* timeinterval in seconds */
@@ -299,6 +328,8 @@ int main(int argc, char **argv) {
         dump_share_beam(Data::shareDir, iodata.msname, &iodata, &beam);
     }
     dump_share_barr(Data::shareDir, iodata.msname, &iodata, barr);
+    write_share_XYZ(Data::shareDir, iodata.msname, p, iodata.N * 8 * Mt, "p");
+    write_share_XYZ(Data::shareDir, iodata.msname, pinit, iodata.N * 8 * Mt, "pinit");
     /*------------------------------------output----------------------------------------------------------------------*/
     FILE *op = 0;
     if ((op = fopen(Data::outputFile, "wb")) == 0) {
@@ -364,6 +395,9 @@ int main(int argc, char **argv) {
     }
     free(carr);
     free(barr);
+    free(p);
+    free(pinit);
+    free(pm);
     /* free data memory */
     if (!doBeam) {
         Data::freeData(iodata);
