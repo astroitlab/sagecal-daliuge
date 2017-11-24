@@ -1,5 +1,5 @@
 import os,logging
-from dfms.drop import BarrierAppDROP
+from dlg.drop import BarrierAppDROP
 import struct
 
 logger = logging.getLogger(__name__)

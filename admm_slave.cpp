@@ -283,8 +283,6 @@ int main(int argc, char **argv) {
     }
     memset(pres, 0, sizeof(double) * iodata.N * 8 * mpiData.M);
 
-
-
     complex double *coh;
     /* coherencies */
     if ((coh = (complex double *) calloc((size_t)(iodata.M * iodata.Nbase * iodata.tilesz * 4), sizeof(complex double)))==0) {

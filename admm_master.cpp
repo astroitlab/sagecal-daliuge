@@ -176,8 +176,7 @@ int main(int argc, char **argv) {
         load_iodata(ip, &data);
 
         cout << "Slave [" << data.msname << "] N=" << data.N << " M/Mt=" << data.M << "/" << data.Mt << " tilesz="
-             << data.tilesz << " totaltime=" << data.totalt << " Freq=" << data.freq0 / 1e6<< "Mhz"
-             << "index:" << cm << endl;
+             << data.tilesz << " totaltime=" << data.totalt << " Freq=" << data.freq0 / 1e6<< "Mhz"<< endl;
 
         msnames.push_back(string(data.msname));
         struct MsIndex msIndex;
@@ -195,7 +194,7 @@ int main(int argc, char **argv) {
             iodata.tilesz = data.tilesz;
             iodata.totalt = data.totalt;
         } else { /* compare against others */
-            if ((iodata.N != data.N) || (iodata.M != data.M) || (iodata.tilesz != data.tilesz)) {
+            if ((iodata.N != data.N) || (iodata.M != data.Mt) || (iodata.tilesz != data.tilesz)) {
                 cout << "Slave " << data.msname << " parameters do not match  N=" << data.N << " M=" << data.M
                      << " tilesz=" << data.tilesz << endl;
             }
@@ -212,7 +211,9 @@ int main(int argc, char **argv) {
         }
         Data::freeData(data);
     }
-
+    for (std::vector <struct MsIndex>::iterator iter = msIndexs.begin (); iter != msIndexs.end (); iter++) {
+        cout << (*iter).cm << "," << (*iter).ms << endl;
+    }
     iodata.freq0 /= (double) iodata.Nms;
 
     cout << "Reference frequency (MHz)=" << iodata.freq0 * 1.0e-6 << endl;
