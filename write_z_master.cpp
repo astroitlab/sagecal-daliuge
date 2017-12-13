@@ -141,6 +141,16 @@ int main(int argc, char **argv) {
         fprintf(sfp, "# reference_freq(MHz) polynomial_order stations clusters effective_clusters\n");
         fprintf(sfp, "%lf %d %d %d %d\n", iodata.freq0 * 1e-6, Npoly, iodata.N, iodata.Mo, iodata.M);
         fclose(sfp);
+        
+        FILE *op = 0;
+        if ((op = fopen(Data::outputFile, "wb")) == 0) {
+            fprintf(stderr, "%s: %d: no output file\n", __FILE__, __LINE__);
+        } else {
+            int flag = 2;
+            fwrite(&flag, sizeof(int), 1, op);
+            fclose(op);
+        }
+
         delete[] iodata.freqs;
         cout << "Done." << endl;
         return 0;

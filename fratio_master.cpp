@@ -148,7 +148,9 @@ int main(int argc, char **argv) {
         fread(&msIndex, sizeof(struct MsIndex), 1, sp);
         msIndexs.push_back(msIndex);
     }
-
+    for (unsigned int cm = 0; cm < msIndexs.size(); cm++) {
+        cout << "msindex:," <<msIndexs[cm].cm << "," << msIndexs[cm].ms << endl;
+    }
     if (sp) {
         fclose(sp);
     }
@@ -204,7 +206,6 @@ int main(int argc, char **argv) {
         ms_short_name(ms_full_name, short_name);
 
         for (unsigned int sm = 0; sm < msIndexs.size(); sm++) {
-            cout << "cur:" << msIndexs[sm].ms << ", index.cm:" << msIndexs[sm].cm << ", idx:" << sm << endl;
             if(strcmp(short_name, msIndexs[sm].ms)==0) {
                 cout << "find:" << msIndexs[sm].ms << ", idx:" << sm << endl;
                 fratio[msIndexs[sm].cm] = data.fratio;

@@ -335,7 +335,7 @@ int main(int argc, char **argv) {
     FILE *sfp = 0;
     /* always create default solution file name MS+'.solutions' */
     if ((sfp = fopen(solutionFile, "a+")) == 0) {
-        fprintf(stderr, "%s: %d: no file\n", __FILE__, __LINE__);
+        fprintf(stderr, "%s: %d: no file,solutionFile:%s\n", __FILE__, __LINE__,solutionFile);
         return 1;
     }
 

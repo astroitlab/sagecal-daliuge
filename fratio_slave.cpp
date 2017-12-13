@@ -56,7 +56,10 @@ void ParseCmdLine(int ac, char **av) {
                 exit(1);
         }
     }
-
+    if(uid==NULL) {
+        fprintf(stderr, "uid is NULL");
+        exit(1);
+    }
     ifstream infile(cmdFile);
     /* check if the file exists and readable */
     if (!infile.good()) {
@@ -269,7 +272,7 @@ int main(int argc, char **argv) {
     iodata.fratio = 1.0 - iodata.fratio;
 
     if (Data::verbose) {
-        cout << iodata.msname << ": downweight ratio (" << iodata.fratio << ") based on flags.------------------------------------------------------------------" << endl;
+        cout << iodata.msname << ": downweight ratio (" << iodata.fratio << ") based on flags." << endl;
     }
     /*----------------------------------------------------------------------------------------------------------------*/
     FILE *op = 0;

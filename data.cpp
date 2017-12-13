@@ -1266,6 +1266,7 @@ void Data::freeData(Data::IOData data) {
 
 
 void Data::freeData(Data::IOData data, Data::LBeam binfo) {
+    free(data.msname);
     delete[] data.u;
     delete[] data.v;
     delete[] data.w;
