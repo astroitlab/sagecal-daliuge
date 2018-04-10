@@ -1,9 +1,6 @@
 import os,logging
-<<<<<<< HEAD
-from dfms.drop import BarrierAppDROP
-=======
 from dlg.drop import BarrierAppDROP
->>>>>>> 7e1b3c310aa6385f4401327fe70bad900190208e
+
 logger = logging.getLogger(__name__)
 
 class IODataCollectApp(BarrierAppDROP):
